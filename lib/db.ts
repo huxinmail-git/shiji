@@ -85,6 +85,288 @@ if (schemaVersion.user_version < 1) {
   `);
 }
 
+if (schemaVersion.user_version < 2) {
+  const seedPath = path.join(process.cwd(), "data", "seed", "twelve-benji.json");
+  const twelveBenji = JSON.parse(fs.readFileSync(seedPath, "utf8")) as {
+    chapters: Array<{ ordinal: number; category: string; title: string; subtitle: string; paragraphs: string[] }>;
+  };
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.exec("DELETE FROM annotations; DELETE FROM paragraphs; DELETE FROM chapters;");
+    const insertChapter = db.prepare("INSERT INTO chapters (id, category, ordinal, title, subtitle) VALUES (?, ?, ?, ?, ?)");
+    const insertParagraph = db.prepare("INSERT INTO paragraphs (id, chapter_id, position, content) VALUES (?, ?, ?, ?)");
+    let paragraphId = 1;
+    for (const chapter of twelveBenji.chapters) {
+      insertChapter.run(chapter.ordinal, chapter.category, chapter.ordinal, chapter.title, chapter.subtitle);
+      chapter.paragraphs.forEach((content, position) => insertParagraph.run(paragraphId++, chapter.ordinal, position + 1, content));
+    }
+
+    const traditionalAliases: Record<number, string[]> = {
+      1: ["項羽", "項籍"], 3: ["項梁"], 4: ["項燕"], 5: ["王翦"],
+      6: ["會稽", "會稽郡"], 7: ["浙江", "錢塘江"], 8: ["吳中"],
+    };
+    const entityRows = db.prepare("SELECT id, name, aliases FROM entities").all() as Array<{ id: number; name: string; aliases: string }>;
+    const candidates: Array<{ entityId: number; text: string }> = [];
+    const updateAliases = db.prepare("UPDATE entities SET aliases = ? WHERE id = ?");
+    for (const entity of entityRows) {
+      const aliases = Array.from(new Set([entity.name, ...JSON.parse(entity.aliases), ...(traditionalAliases[entity.id] ?? [])]));
+      updateAliases.run(JSON.stringify(aliases.filter((alias) => alias !== entity.name)), entity.id);
+      aliases.filter((alias) => alias.length >= 2).forEach((text) => candidates.push({ entityId: entity.id, text }));
+    }
+    candidates.sort((a, b) => b.text.length - a.text.length);
+    const paragraphs = db.prepare("SELECT id, content FROM paragraphs").all() as Array<{ id: number; content: string }>;
+    const insertAnnotation = db.prepare("INSERT INTO annotations (paragraph_id, entity_id, start_offset, end_offset) VALUES (?, ?, ?, ?)");
+    for (const paragraph of paragraphs) {
+      const occupied: Array<[number, number]> = [];
+      for (const candidate of candidates) {
+        let start = paragraph.content.indexOf(candidate.text);
+        while (start >= 0) {
+          const end = start + candidate.text.length;
+          if (!occupied.some(([from, to]) => start < to && end > from)) {
+            insertAnnotation.run(paragraph.id, candidate.entityId, start, end);
+            occupied.push([start, end]);
+          }
+          start = paragraph.content.indexOf(candidate.text, start + candidate.text.length);
+        }
+      }
+    }
+    db.exec("PRAGMA user_version = 2; COMMIT;");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+if (schemaVersion.user_version < 3) {
+  const seedPath = path.join(process.cwd(), "data", "seed", "auto-entities.json");
+  const autoEntitySeed = JSON.parse(fs.readFileSync(seedPath, "utf8")) as {
+    entities: Array<{
+      type: "PERSON" | "PLACE";
+      name: string;
+      aliases: string[];
+      summary: string;
+      details: string;
+      modernName?: string;
+      latitude?: number;
+      longitude?: number;
+    }>;
+  };
+
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const insertEntity = db.prepare(`
+      INSERT INTO entities (type, name, aliases, summary, details, modern_name, latitude, longitude)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const updateAliases = db.prepare("UPDATE entities SET aliases = ? WHERE id = ?");
+
+    // Match on the canonical name or any alias so an existing, manually edited
+    // entry is enriched instead of being replaced by the generated seed entry.
+    const existing = db.prepare("SELECT id, type, name, aliases FROM entities").all() as Array<{
+      id: number; type: string; name: string; aliases: string;
+    }>;
+    for (const incoming of autoEntitySeed.entities) {
+      const incomingNames = new Set([incoming.name, ...incoming.aliases]);
+      const match = existing.find((entity) => {
+        if (entity.type !== incoming.type) return false;
+        return [entity.name, ...(JSON.parse(entity.aliases) as string[])].some((name) => incomingNames.has(name));
+      });
+      if (match) {
+        const aliases = Array.from(new Set([
+          ...(JSON.parse(match.aliases) as string[]),
+          incoming.name,
+          ...incoming.aliases,
+        ])).filter((name) => name !== match.name);
+        updateAliases.run(JSON.stringify(aliases), match.id);
+        match.aliases = JSON.stringify(aliases);
+      } else {
+        const result = insertEntity.run(
+          incoming.type,
+          incoming.name,
+          JSON.stringify(incoming.aliases),
+          incoming.summary,
+          incoming.details,
+          incoming.modernName ?? null,
+          incoming.latitude ?? null,
+          incoming.longitude ?? null,
+        );
+        existing.push({
+          id: Number(result.lastInsertRowid),
+          type: incoming.type,
+          name: incoming.name,
+          aliases: JSON.stringify(incoming.aliases),
+        });
+      }
+    }
+
+    db.exec("DELETE FROM annotations");
+    const candidates = existing.flatMap((entity) =>
+      Array.from(new Set([entity.name, ...(JSON.parse(entity.aliases) as string[])]))
+        .filter((text) => text.length >= 2)
+        .map((text) => ({ entityId: entity.id, text })),
+    ).sort((a, b) => b.text.length - a.text.length || a.entityId - b.entityId);
+    const paragraphs = db.prepare("SELECT id, content FROM paragraphs").all() as Array<{ id: number; content: string }>;
+    const insertAnnotation = db.prepare(`
+      INSERT INTO annotations (paragraph_id, entity_id, start_offset, end_offset)
+      VALUES (?, ?, ?, ?)
+    `);
+    for (const paragraph of paragraphs) {
+      const occupied: Array<[number, number]> = [];
+      for (const candidate of candidates) {
+        let start = paragraph.content.indexOf(candidate.text);
+        while (start >= 0) {
+          const end = start + candidate.text.length;
+          if (!occupied.some(([from, to]) => start < to && end > from)) {
+            insertAnnotation.run(paragraph.id, candidate.entityId, start, end);
+            occupied.push([start, end]);
+          }
+          start = paragraph.content.indexOf(candidate.text, start + candidate.text.length);
+        }
+      }
+    }
+
+    db.exec("PRAGMA user_version = 3; COMMIT;");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+if (schemaVersion.user_version < 4) {
+  const seedPath = path.join(process.cwd(), "data", "seed", "auto-relations.json");
+  const relationSeed = JSON.parse(fs.readFileSync(seedPath, "utf8")) as {
+    relations: Array<{ source: string; target: string; type: string; description: string }>;
+  };
+
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const people = db.prepare("SELECT id, name, aliases FROM entities WHERE type = 'PERSON'").all() as Array<{
+      id: number; name: string; aliases: string;
+    }>;
+    const personByName = new Map<string, number>();
+    for (const person of people) {
+      for (const name of [person.name, ...(JSON.parse(person.aliases) as string[])]) {
+        if (!personByName.has(name)) personByName.set(name, person.id);
+      }
+    }
+
+    const existingRelations = db.prepare("SELECT source_id, target_id, relation_type FROM relations").all() as Array<{
+      source_id: number; target_id: number; relation_type: string;
+    }>;
+    const relationKey = (sourceId: number, targetId: number, type: string) =>
+      `${Math.min(sourceId, targetId)}:${Math.max(sourceId, targetId)}:${type}`;
+    const known = new Set(existingRelations.map((relation) =>
+      relationKey(relation.source_id, relation.target_id, relation.relation_type),
+    ));
+    const insertRelation = db.prepare(`
+      INSERT INTO relations (source_id, target_id, relation_type, description)
+      VALUES (?, ?, ?, ?)
+    `);
+    for (const relation of relationSeed.relations) {
+      const sourceId = personByName.get(relation.source);
+      const targetId = personByName.get(relation.target);
+      if (!sourceId || !targetId) continue;
+      const key = relationKey(sourceId, targetId, relation.type);
+      if (known.has(key)) continue;
+      insertRelation.run(sourceId, targetId, relation.type, relation.description);
+      known.add(key);
+    }
+
+    db.exec("PRAGMA user_version = 4; COMMIT;");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+if (schemaVersion.user_version < 5) {
+  const columns = db.prepare("PRAGMA table_info(entities)").all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+  if (!columnNames.has("source_name")) db.exec("ALTER TABLE entities ADD COLUMN source_name TEXT");
+  if (!columnNames.has("source_url")) db.exec("ALTER TABLE entities ADD COLUMN source_url TEXT");
+  if (!columnNames.has("source_updated_at")) db.exec("ALTER TABLE entities ADD COLUMN source_updated_at TEXT");
+
+  const descriptionsPath = path.join(process.cwd(), "data", "seed", "entity-descriptions.json");
+  if (fs.existsSync(descriptionsPath)) {
+    const descriptionSeed = JSON.parse(fs.readFileSync(descriptionsPath, "utf8")) as {
+      entities: Array<{
+        name: string; summary: string; details: string;
+        sourceName: string; sourceUrl: string; sourceUpdatedAt: string;
+      }>;
+    };
+    const findEntity = db.prepare(`
+      SELECT id, summary, details FROM entities
+      WHERE name = ? OR EXISTS (SELECT 1 FROM json_each(aliases) WHERE value = ?)
+      LIMIT 1
+    `);
+    const applyDescription = db.prepare(`
+      UPDATE entities
+      SET summary = ?, details = ?, source_name = ?, source_url = ?, source_updated_at = ?
+      WHERE id = ?
+    `);
+    for (const incoming of descriptionSeed.entities) {
+      const entity = findEntity.get(incoming.name, incoming.name) as {
+        id: number; summary: string; details: string;
+      } | undefined;
+      if (!entity) continue;
+      const isGenerated = entity.details.startsWith("本条目由") || entity.summary.includes("十二本纪相关");
+      if (!isGenerated) continue;
+      applyDescription.run(
+        incoming.summary, incoming.details, incoming.sourceName,
+        incoming.sourceUrl, incoming.sourceUpdatedAt, entity.id,
+      );
+    }
+  }
+  db.exec("PRAGMA user_version = 5;");
+}
+
+if (schemaVersion.user_version < 6) {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const findPerson = db.prepare("SELECT id, name, aliases FROM entities WHERE type = 'PERSON' AND name = ?");
+    const updateAliases = db.prepare("UPDATE entities SET aliases = ? WHERE id = ?");
+    const moveAnnotations = db.prepare("UPDATE annotations SET entity_id = ? WHERE entity_id = ?");
+    const moveRelationSources = db.prepare("UPDATE relations SET source_id = ? WHERE source_id = ?");
+    const moveRelationTargets = db.prepare("UPDATE relations SET target_id = ? WHERE target_id = ?");
+    const deleteEntity = db.prepare("DELETE FROM entities WHERE id = ?");
+    const duplicatePeople = [
+      { canonical: "顓頊", duplicate: "高陽" },
+      { canonical: "帝嚳", duplicate: "高辛" },
+      { canonical: "帝堯", duplicate: "放勳" },
+    ];
+    for (const pair of duplicatePeople) {
+      const canonical = findPerson.get(pair.canonical) as { id: number; name: string; aliases: string } | undefined;
+      const duplicate = findPerson.get(pair.duplicate) as { id: number; name: string; aliases: string } | undefined;
+      if (!canonical || !duplicate) continue;
+      const aliases = Array.from(new Set([
+        ...(JSON.parse(canonical.aliases) as string[]),
+        duplicate.name,
+        ...(JSON.parse(duplicate.aliases) as string[]),
+      ])).filter((name) => name !== canonical.name);
+      updateAliases.run(JSON.stringify(aliases), canonical.id);
+      moveAnnotations.run(canonical.id, duplicate.id);
+      moveRelationSources.run(canonical.id, duplicate.id);
+      moveRelationTargets.run(canonical.id, duplicate.id);
+      deleteEntity.run(duplicate.id);
+    }
+    db.exec(`
+      DELETE FROM relations WHERE source_id = target_id;
+      DELETE FROM relations WHERE id NOT IN (
+        SELECT MIN(id) FROM relations
+        GROUP BY
+          CASE WHEN source_id < target_id THEN source_id ELSE target_id END,
+          CASE WHEN source_id < target_id THEN target_id ELSE source_id END,
+          relation_type
+      );
+      PRAGMA user_version = 6;
+      COMMIT;
+    `);
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 export function getReaderData(): ReaderData {
   const chapters = db.prepare("SELECT * FROM chapters ORDER BY ordinal").all() as any[];
   const paragraphs = db.prepare("SELECT * FROM paragraphs ORDER BY chapter_id, position").all() as any[];
@@ -108,7 +390,7 @@ export function getReaderData(): ReaderData {
         })),
       })),
     })),
-    entities: (db.prepare("SELECT id,type,name,aliases,summary,details,modern_name modernName,latitude,longitude FROM entities ORDER BY id").all() as any[])
+    entities: (db.prepare("SELECT id,type,name,aliases,summary,details,modern_name modernName,latitude,longitude,source_name sourceName,source_url sourceUrl,source_updated_at sourceUpdatedAt FROM entities ORDER BY id").all() as any[])
       .map((entity) => ({
         id: entity.id,
         type: entity.type,
@@ -119,6 +401,9 @@ export function getReaderData(): ReaderData {
         modernName: entity.modernName ?? undefined,
         latitude: entity.latitude ?? undefined,
         longitude: entity.longitude ?? undefined,
+        sourceName: entity.sourceName ?? undefined,
+        sourceUrl: entity.sourceUrl ?? undefined,
+        sourceUpdatedAt: entity.sourceUpdatedAt ?? undefined,
       })),
     relations: (db.prepare("SELECT id,source_id sourceId,target_id targetId,relation_type relationType,description FROM relations").all() as any[])
       .map((relation) => ({
@@ -145,7 +430,7 @@ export function updateEntity(id: number, input: Pick<Entity, "summary" | "detail
     db.exec("ROLLBACK");
     throw error;
   }
-  const updated = db.prepare("SELECT id,type,name,aliases,summary,details,modern_name modernName,latitude,longitude FROM entities WHERE id = ?").get(id) as any;
+  const updated = db.prepare("SELECT id,type,name,aliases,summary,details,modern_name modernName,latitude,longitude,source_name sourceName,source_url sourceUrl,source_updated_at sourceUpdatedAt FROM entities WHERE id = ?").get(id) as any;
   return {
     id: updated.id,
     type: updated.type,
@@ -156,5 +441,8 @@ export function updateEntity(id: number, input: Pick<Entity, "summary" | "detail
     modernName: updated.modernName ?? undefined,
     latitude: updated.latitude ?? undefined,
     longitude: updated.longitude ?? undefined,
+    sourceName: updated.sourceName ?? undefined,
+    sourceUrl: updated.sourceUrl ?? undefined,
+    sourceUpdatedAt: updated.sourceUpdatedAt ?? undefined,
   };
 }

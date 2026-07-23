@@ -5,6 +5,16 @@ import { BookOpen, Check, ChevronLeft, ChevronRight, Edit3, Map, Menu, Network, 
 import type { Chapter, Entity, Paragraph, ReaderData } from "@/lib/types";
 import PlaceMap from "@/components/place-map";
 
+function chineseNumber(value: number) {
+  const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  if (value < 10) return digits[value];
+  if (value === 10) return "十";
+  if (value < 20) return `十${digits[value - 10]}`;
+  const tens = Math.floor(value / 10);
+  const ones = value % 10;
+  return `${digits[tens]}十${ones ? digits[ones] : ""}`;
+}
+
 function MarkedParagraph({ paragraph, entities, onSelect }: { paragraph: Paragraph; entities: Entity[]; onSelect: (entity: Entity) => void }) {
   const marks = [...paragraph.annotations].sort((a, b) => a.startOffset - b.startOffset);
   const parts: React.ReactNode[] = [];
@@ -48,6 +58,7 @@ function EntityPanel({ entity, data, onClose, onSaved }: { entity: Entity; data:
       <div className="edit-actions"><button className="secondary" onClick={() => setEditing(false)}>取消</button><button className="primary" onClick={save} disabled={saving}><Check size={15}/>{saving ? "保存中" : "保存"}</button></div>
     </div> : <>
       <p className="entity-summary">{entity.summary}</p><p className="entity-details">{entity.details}</p>
+      {entity.sourceUrl && <p className="entity-source">参考资料：<a href={entity.sourceUrl} target="_blank" rel="noreferrer">{entity.sourceName ?? "维基百科"}</a>{entity.sourceUpdatedAt ? ` · ${entity.sourceUpdatedAt.slice(0, 10)}` : ""}</p>}
       <button className="edit-button" onClick={() => setEditing(true)}><Edit3 size={15}/>编辑说明</button>
     </>}
     {entity.type === "PERSON" && <section className="panel-section"><div className="section-title"><Network size={16}/>人物关联</div>{related.length ? related.map((relation) => {
@@ -55,7 +66,7 @@ function EntityPanel({ entity, data, onClose, onSaved }: { entity: Entity; data:
       const other = data.entities.find((item) => item.id === otherId);
       return <div className="relation" key={relation.id}><div><strong>{other?.name}</strong><span>{relation.relationType}</span></div><p>{relation.description}</p></div>;
     }) : <p className="muted">暂无已考证关系</p>}</section>}
-    {entity.type === "PLACE" && <section className="panel-section"><div className="section-title"><Map size={16}/>古今位置</div><PlaceMap entity={entity}/><p className="map-note">古代层展示秦代郡县、城市与水系；现代层展示当前道路、城市和行政区域。</p></section>}
+    {entity.type === "PLACE" && <section className="panel-section"><div className="section-title"><Map size={16}/>现代位置</div><PlaceMap entity={entity}/><p className="map-note">地图显示该地点今天的位置、道路和周边城市，可缩放和拖动查看。</p></section>}
   </aside>;
 }
 
@@ -79,12 +90,12 @@ export default function Reader({ initialData }: { initialData: ReaderData }) {
         <div className="nav-heading"><div><small>卷目</small><h2>史记百三十篇</h2></div><button className="mobile-close icon-button" onClick={() => setNavOpen(false)}><X size={18}/></button></div>
         <div className="search"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="检索篇目"/></div>
         <div className="chapter-list">{filtered.map((item) => <button key={item.id} className={item.id === chapterId ? "active" : ""} onClick={() => selectChapter(item.id)}><span>{String(item.ordinal).padStart(2, "0")}</span><div><strong>{item.title}</strong><small>{item.category}</small></div></button>)}</div>
-        <div className="nav-foot"><BookOpen size={16}/><span>当前收录 {data.chapters.length} 篇原型数据</span></div>
+        <div className="nav-foot"><BookOpen size={16}/><span>十二本纪全文 · 维基文库 CC BY-SA</span></div>
       </nav>
       {navOpen && <button className="backdrop" onClick={() => setNavOpen(false)} aria-label="关闭目录"/>}
       <article className="reading-pane">
         <div className="paper">
-          <div className="chapter-kicker">卷七 · {chapter.category}第七</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
+          <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
           <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={data.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
           <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(data.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 卷</span><button disabled={currentIndex === data.chapters.length - 1} onClick={() => selectChapter(data.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
         </div>

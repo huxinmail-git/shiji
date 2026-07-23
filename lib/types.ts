@@ -10,6 +10,9 @@ export interface Entity {
   modernName?: string;
   latitude?: number;
   longitude?: number;
+  sourceName?: string;
+  sourceUrl?: string;
+  sourceUpdatedAt?: string;
 }
 
 export interface Annotation {

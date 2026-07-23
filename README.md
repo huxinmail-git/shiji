@@ -31,7 +31,17 @@ npm start
 
 ## 原型数据
 
-当前完整示例为《项羽本纪》开篇三段，另有三个篇目作为目录和空状态示例。标注以段落内字符偏移保存，人物别名可统一指向同一实体。
+当前已收录十二本纪全文，共 782 段、约 9.4 万字。正文来自维基文库《史记》（CC BY-SA 4.0），并固化在 `data/seed/twelve-benji.json` 中。标注以段落内字符偏移保存，人物别名可统一指向同一实体。
+
+## 自动生成实体介绍
+
+人物和地名介绍可通过 Wikimedia 官方 API 批量生成：
+
+```bash
+npm run enrich:wikipedia
+```
+
+生成器只替换尚未校订的占位说明，不覆盖手工编辑内容。结果同时写入本地 SQLite 数据库和 `data/seed/entity-descriptions.json`，因此可以提交到代码仓库并在另一台电脑上通过数据库迁移恢复；详情面板会显示中文维基百科来源链接和生成日期。
 
 ## 下一阶段
 
@@ -46,6 +56,5 @@ npm start
 ## 地图数据来源
 
 - 现代底图：OpenStreetMap contributors，ODbL。
-- 古代图层：“秦代分郡地图”，来自[观沧海地图共享知识](https://ageeye.app.ditushu.com/map/37030459f79ae1e854f6391c8029cdbdffa40/)，作者 Circuare，CC BY-SA。
-- 转换后的华东局部 GeoJSON 位于 `public/data/qin-east.geojson`，保留相同许可和署名。
-- 转换脚本：`scripts/convert-ageeye.mjs`。
+- 古代区域数据：“秦代分郡地图”，来自[观沧海地图共享知识](https://ageeye.app.ditushu.com/map/37030459f79ae1e854f6391c8029cdbdffa40/)，作者 Circuare，CC BY-SA。
+- `public/data/qin-east.geojson` 作为研究资料保留，当前阅读界面仅展示现代地图，不加载古代图层。

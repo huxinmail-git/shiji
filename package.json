@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "enrich:wikipedia": "node --disable-warning=ExperimentalWarning scripts/enrich-entities-from-wikipedia.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
