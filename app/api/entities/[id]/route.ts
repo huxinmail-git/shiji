@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { updateEntity } from "@/lib/db";
+import { entityEditingEnabled, updateEntity } from "@/lib/db";
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  if (!entityEditingEnabled) {
+    return NextResponse.json(
+      { error: "当前部署为只读模式，不能修改实体说明" },
+      { status: 403 },
+    );
+  }
   const { id } = await context.params;
   const body = await request.json();
   if (typeof body.summary !== "string" || typeof body.details !== "string") {

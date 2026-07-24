@@ -33,7 +33,7 @@ function MarkedParagraph({ paragraph, entities, onSelect }: { paragraph: Paragra
   return <p className="classic-text">{parts}</p>;
 }
 
-function EntityPanel({ entity, data, onClose, onSaved }: { entity: Entity; data: ReaderData; onClose: () => void; onSaved: (entity: Entity) => void }) {
+function EntityPanel({ entity, data, canEdit, onClose, onSaved }: { entity: Entity; data: ReaderData; canEdit: boolean; onClose: () => void; onSaved: (entity: Entity) => void }) {
   const [editing, setEditing] = useState(false);
   const [summary, setSummary] = useState(entity.summary);
   const [details, setDetails] = useState(entity.details);
@@ -59,7 +59,9 @@ function EntityPanel({ entity, data, onClose, onSaved }: { entity: Entity; data:
     </div> : <>
       <p className="entity-summary">{entity.summary}</p><p className="entity-details">{entity.details}</p>
       {entity.sourceUrl && <p className="entity-source">参考资料：<a href={entity.sourceUrl} target="_blank" rel="noreferrer">{entity.sourceName ?? "维基百科"}</a>{entity.sourceUpdatedAt ? ` · ${entity.sourceUpdatedAt.slice(0, 10)}` : ""}</p>}
-      <button className="edit-button" onClick={() => setEditing(true)}><Edit3 size={15}/>编辑说明</button>
+      {canEdit
+        ? <button className="edit-button" onClick={() => setEditing(true)}><Edit3 size={15}/>编辑说明</button>
+        : <p className="readonly-note">线上版本为只读模式</p>}
     </>}
     {entity.type === "PERSON" && <section className="panel-section"><div className="section-title"><Network size={16}/>人物关联</div>{related.length ? related.map((relation) => {
       const otherId = relation.sourceId === entity.id ? relation.targetId : relation.sourceId;
@@ -70,7 +72,7 @@ function EntityPanel({ entity, data, onClose, onSaved }: { entity: Entity; data:
   </aside>;
 }
 
-export default function Reader({ initialData }: { initialData: ReaderData }) {
+export default function Reader({ initialData, canEdit }: { initialData: ReaderData; canEdit: boolean }) {
   const [data, setData] = useState(initialData);
   const [chapterId, setChapterId] = useState(initialData.chapters[0].id);
   const [selected, setSelected] = useState<Entity | null>(null);
@@ -100,7 +102,7 @@ export default function Reader({ initialData }: { initialData: ReaderData }) {
           <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(data.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 卷</span><button disabled={currentIndex === data.chapters.length - 1} onClick={() => selectChapter(data.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
         </div>
       </article>
-      {selected && <EntityPanel key={selected.id} entity={selected} data={data} onClose={() => setSelected(null)} onSaved={updateEntity}/>} 
+      {selected && <EntityPanel key={selected.id} entity={selected} data={data} canEdit={canEdit} onClose={() => setSelected(null)} onSaved={updateEntity}/>}
     </div>
   </main>;
 }

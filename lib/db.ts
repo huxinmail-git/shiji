@@ -4,10 +4,20 @@ import path from "node:path";
 import type { Entity, ReaderData } from "./types";
 
 const dataDir = path.join(process.cwd(), "data");
-fs.mkdirSync(dataDir, { recursive: true });
-const db = new DatabaseSync(path.join(dataDir, "shiji.db"));
+const databasePath = path.join(dataDir, "shiji.db");
+
+// Vercel functions can read files shipped with the deployment, but their
+// filesystem is not suitable for persistent application data.
+export const entityEditingEnabled = process.env.VERCEL !== "1" && process.env.SHIJI_READ_ONLY !== "1";
+
+if (entityEditingEnabled) fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(databasePath)) {
+  throw new Error(`史记数据库不存在：${databasePath}`);
+}
+const db = new DatabaseSync(databasePath, { readOnly: !entityEditingEnabled });
 
 db.exec(`PRAGMA busy_timeout = 10000;`);
+if (entityEditingEnabled) {
 db.exec(`
   CREATE TABLE IF NOT EXISTS chapters (
     id INTEGER PRIMARY KEY, category TEXT NOT NULL, ordinal INTEGER NOT NULL,
@@ -366,6 +376,7 @@ if (schemaVersion.user_version < 6) {
     throw error;
   }
 }
+}
 
 export function getReaderData(): ReaderData {
   const chapters = db.prepare("SELECT * FROM chapters ORDER BY ordinal").all() as any[];
@@ -417,6 +428,9 @@ export function getReaderData(): ReaderData {
 }
 
 export function updateEntity(id: number, input: Pick<Entity, "summary" | "details">): Entity | null {
+  if (!entityEditingEnabled) {
+    throw new Error("当前部署为只读模式，不能修改实体说明");
+  }
   const current = db.prepare("SELECT * FROM entities WHERE id = ?").get(id) as any;
   if (!current) return null;
   db.exec("BEGIN IMMEDIATE");

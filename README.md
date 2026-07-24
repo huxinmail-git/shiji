@@ -58,3 +58,21 @@ npm run enrich:wikipedia
 - 现代底图：OpenStreetMap contributors，ODbL。
 - 古代区域数据：“秦代分郡地图”，来自[观沧海地图共享知识](https://ageeye.app.ditushu.com/map/37030459f79ae1e854f6391c8029cdbdffa40/)，作者 Circuare，CC BY-SA。
 - `public/data/qin-east.geojson` 作为研究资料保留，当前阅读界面仅展示现代地图，不加载古代图层。 
+
+## 部署到 Vercel
+
+项目可直接导入 Vercel，框架预设选择 Next.js，构建命令和输出目录保持默认即可。仓库中的 `data/shiji.db` 是部署所需的只读数据快照，必须一同提交。
+
+Vercel 会自动设置 `VERCEL=1`。在该环境下：
+
+- SQLite 数据库以只读方式打开；
+- 实体说明编辑入口会隐藏；
+- 编辑 API 会返回 `403`，避免把临时文件系统误当作持久化存储。
+
+本地运行仍保留实体编辑与修订记录。如果需要在其他只读环境中模拟线上行为，可运行：
+
+```bash
+SHIJI_READ_ONLY=1 npm run dev
+```
+
+若线上需要开放编辑，应先把实体和修订数据迁移到 Vercel Postgres、Neon 等持久化数据库，并增加身份认证与权限控制。
