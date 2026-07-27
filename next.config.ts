@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "/shiji";
+
+const nextConfig: NextConfig = {
+  basePath,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
+};
 
 export default nextConfig;

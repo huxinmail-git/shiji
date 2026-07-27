@@ -5,6 +5,8 @@ import { BookOpen, Check, ChevronLeft, ChevronRight, Edit3, Map, Menu, Network, 
 import type { Chapter, Entity, Paragraph, ReaderData } from "@/lib/types";
 import PlaceMap from "@/components/place-map";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/shiji";
+
 function chineseNumber(value: number) {
   const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
   if (value < 10) return digits[value];
@@ -42,7 +44,7 @@ function EntityPanel({ entity, data, canEdit, onClose, onSaved }: { entity: Enti
 
   async function save() {
     setSaving(true);
-    const response = await fetch(`/api/entities/${entity.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ summary, details }) });
+    const response = await fetch(`${basePath}/api/entities/${entity.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ summary, details }) });
     if (response.ok) { onSaved(await response.json()); setEditing(false); }
     setSaving(false);
   }
