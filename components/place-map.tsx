@@ -17,14 +17,30 @@ export default function PlaceMap({ entity }: { entity: Entity }) {
       const center: [number, number] = [entity.latitude ?? 32.5, entity.longitude ?? 118.5];
       const map = L.map(mapNode.current, { zoomControl: true, attributionControl: true }).setView(center, 8);
       mapInstance.current = map;
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      const tileUrl = process.env.NEXT_PUBLIC_MAP_TILE_URL?.trim()
+        || "/api/map-tiles/{z}/{x}/{y}.png";
+      const attribution = process.env.NEXT_PUBLIC_MAP_ATTRIBUTION?.trim()
+        || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+      let tileLoadFailed = false;
+      const tileLayer = L.tileLayer(tileUrl, {
         maxZoom: 18,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+        attribution,
+      });
+      tileLayer.on("loading", () => {
+        tileLoadFailed = false;
+        setStatus("正在加载地图…");
+      });
+      tileLayer.on("tileerror", () => {
+        tileLoadFailed = true;
+        setStatus("地图底图加载失败，请稍后重试");
+      });
+      tileLayer.on("load", () => {
+        if (!tileLoadFailed) setStatus("");
+      });
+      tileLayer.addTo(map);
       L.circleMarker(center, { radius: 7, color: "#fff", weight: 2, fillColor: "#a53e35", fillOpacity: 1 })
         .addTo(map)
         .bindTooltip(`${entity.name} · ${entity.modernName ?? "现代位置"}`, { permanent: true, direction: "top" });
-      setStatus("");
     }
     initialize();
     return () => {
