@@ -5,3 +5,14 @@ data/*.db-wal
 .DS_Store
 npm-debug.log*
 .idea
+
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+
+.env*
+!.env.example
