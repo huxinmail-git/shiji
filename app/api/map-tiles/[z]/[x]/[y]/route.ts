@@ -52,8 +52,8 @@ export async function GET(_request: Request, context: RouteContext) {
     const response = await fetch(upstream, {
       headers: {
         Accept: "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
-        Referer: "https://ryanhu.xyz/",
-        "User-Agent": "ShijiReader/0.1 (+https://ryanhu.xyz)",
+        Referer: "https://shijis.xyz/",
+        "User-Agent": "Shiji/0.1 (+https://shijis.xyz)",
       },
       signal: AbortSignal.timeout(15_000),
     });
