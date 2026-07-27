@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "enrich:wikipedia": "node --disable-warning=ExperimentalWarning scripts/enrich-entities-from-wikipedia.mjs"
+    "enrich:wikipedia": "node --disable-warning=ExperimentalWarning scripts/enrich-entities-from-wikipedia.mjs",
+    "export:reader-data": "node --disable-warning=ExperimentalWarning scripts/export-reader-data.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

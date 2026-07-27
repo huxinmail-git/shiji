@@ -1,10 +1,10 @@
 # 太史书
 
-一个面向《史记》的数字阅读器原型。当前版本提供篇章阅读、人物/地名标注、人物关系、古今位置占位展示，以及人物和地名说明的本地编辑与版本留痕。
+一个面向《史记》的数字阅读器原型。当前版本提供篇章阅读、人物/地名标注、人物关系、古今位置占位展示；线上阅读使用只读数据快照。
 
 ## 本地运行
 
-需要 Node.js 22.5 或更高版本（项目当前使用 Node.js 24 的内置 SQLite）。
+需要 Node.js 22.5 或更高版本；SQLite 仅用于本地数据维护和快照导出。
 
 ```bash
 npm install
@@ -23,10 +23,10 @@ npm start
 ## 当前技术结构
 
 - Next.js 15、React 19、TypeScript
-- Node.js 内置 SQLite，本地数据位于 `data/shiji.db`
+- Node.js 内置 SQLite，本地维护源位于 `data/shiji.db`
 - Leaflet 地图引擎与 OpenStreetMap 现代底图
-- 服务端渲染阅读数据，客户端负责篇章切换、详情面板和编辑交互
-- 实体说明更新通过 `/api/entities/:id` 写入数据库
+- 静态构建阅读数据，客户端负责篇章切换和详情面板交互
+- `data/reader-data.json` 作为云端部署快照
 - 每次保存前的说明会记录到 `revisions` 表
 
 ## 原型数据
@@ -51,7 +51,7 @@ npm run enrich:wikipedia
 4. 增加登录、编辑权限、修订对比和回滚。
 5. 部署前迁移到 PostgreSQL/PostGIS。
 
-当前编辑接口尚未增加登录和权限控制，只适用于本地原型环境。
+线上编辑接口暂未开放，当前部署面向只读阅读场景。
 
 ## 地图数据来源
 
@@ -59,20 +59,20 @@ npm run enrich:wikipedia
 - 古代区域数据：“秦代分郡地图”，来自[观沧海地图共享知识](https://ageeye.app.ditushu.com/map/37030459f79ae1e854f6391c8029cdbdffa40/)，作者 Circuare，CC BY-SA。
 - `public/data/qin-east.geojson` 作为研究资料保留，当前阅读界面仅展示现代地图，不加载古代图层。 
 
-## 部署到 Vercel
+## 部署到 Cloudflare 或 Vercel
 
-项目可直接导入 Vercel，框架预设选择 Next.js，构建命令和输出目录保持默认即可。仓库中的 `data/shiji.db` 是部署所需的只读数据快照，必须一同提交。
+云端运行时不直接加载 SQLite。`data/shiji.db` 仅作为本地维护源，部署使用可被 Worker 和 Serverless 环境直接打包的 `data/reader-data.json` 快照。数据库内容更新后，先重新导出并验证构建：
 
-Vercel 会自动设置 `VERCEL=1`。在该环境下：
-
-- SQLite 数据库以只读方式打开；
-- 实体说明编辑入口会隐藏；
-- 编辑 API 会返回 `403`，避免把临时文件系统误当作持久化存储。
-
-本地运行仍保留实体编辑与修订记录。如果需要在其他只读环境中模拟线上行为，可运行：
-
-```bash
-SHIJI_READ_ONLY=1 npm run dev
+```shell
+npm run export:reader-data
+npm run build
 ```
 
-若线上需要开放编辑，应先把实体和修订数据迁移到 Vercel Postgres、Neon 等持久化数据库，并增加身份认证与权限控制。
+Cloudflare Workers 项目可继续使用 Next.js 自动构建预设。当前首页强制静态生成，因此线上请求不会加载 `node:sqlite` 或访问本地文件系统：
+
+- 阅读数据来自 `data/reader-data.json`；
+- 实体说明编辑入口隐藏；
+- 编辑 API 固定返回 `403`；
+- Vercel 部署使用同一份只读构建，无需单独配置 SQLite 文件追踪。
+
+若线上需要开放编辑，应将实体和修订数据迁移到 Cloudflare D1、PostgreSQL 等持久化数据库，并增加身份认证与权限控制。
