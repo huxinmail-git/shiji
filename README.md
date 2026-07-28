@@ -56,8 +56,22 @@ npm run enrich:wikipedia
 ## 地图数据来源
 
 - 现代底图：OpenStreetMap contributors，ODbL。
+- 线上浏览器通过同域 `/api/map-tiles/...` 请求地图，Cloudflare Worker 负责获取并缓存瓦片，避免国内客户端直接访问 OpenStreetMap 瓦片域名。
 - 古代区域数据：“秦代分郡地图”，来自[观沧海地图共享知识](https://ageeye.app.ditushu.com/map/37030459f79ae1e854f6391c8029cdbdffa40/)，作者 Circuare，CC BY-SA。
 - `public/data/qin-east.geojson` 作为研究资料保留，当前阅读界面仅展示现代地图，不加载古代图层。 
+
+地图地址可通过环境变量调整：
+
+```shell
+# 浏览器请求地址，默认使用同域代理
+NEXT_PUBLIC_MAP_TILE_URL=/api/map-tiles/{z}/{x}/{y}.png
+NEXT_PUBLIC_MAP_ATTRIBUTION='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+# Worker 获取瓦片的上游地址；未设置时使用 OpenStreetMap
+MAP_TILE_UPSTREAM_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
+```
+
+`MAP_TILE_UPSTREAM_URL` 只在服务端使用，不会把上游域名或密钥暴露给浏览器。替换为商业或国内地图服务前，应确认授权条款、坐标系和署名要求。
 
 ## 部署到 Cloudflare 或 Vercel
 
@@ -74,5 +88,7 @@ Cloudflare Workers 项目可继续使用 Next.js 自动构建预设。当前首�
 - 实体说明编辑入口隐藏；
 - 编辑 API 固定返回 `403`；
 - Vercel 部署使用同一份只读构建，无需单独配置 SQLite 文件追踪。
+
+Cloudflare 项目名使用 `shiji`，自定义域名绑定为 `shijis.xyz`，线上入口为 <https://shijis.xyz>，不使用额外的应用路径。
 
 若线上需要开放编辑，应将实体和修订数据迁移到 Cloudflare D1、PostgreSQL 等持久化数据库，并增加身份认证与权限控制。
