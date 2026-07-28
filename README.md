@@ -2,6 +2,8 @@
 
 一个面向《史记》的数字阅读器原型。当前版本提供篇章阅读、人物/地名标注、人物关系、古今位置占位展示；线上阅读使用只读数据快照。
 
+站点还预留了访问统计和章末推广位：百度统计只会在用户明确同意后加载，且会尊重浏览器的 Do Not Track / Global Privacy Control 设置；章末推广位只有在环境变量完整配置时才会显示。
+
 ## 本地运行
 
 需要 Node.js 22.5 或更高版本；SQLite 仅用于本地数据维护和快照导出。
@@ -28,6 +30,7 @@ npm start
 - 静态构建阅读数据，客户端负责篇章切换和详情面板交互
 - `data/reader-data.json` 作为云端部署快照
 - 每次保存前的说明会记录到 `revisions` 表
+- 可选的百度统计和章末推广位通过环境变量控制
 
 ## 原型数据
 
@@ -58,7 +61,7 @@ npm run enrich:wikipedia
 - 现代底图：OpenStreetMap contributors，ODbL。
 - 线上浏览器通过同域 `/api/map-tiles/...` 请求地图，Cloudflare Worker 负责获取并缓存瓦片，避免国内客户端直接访问 OpenStreetMap 瓦片域名。
 - 古代区域数据：“秦代分郡地图”，来自[观沧海地图共享知识](https://ageeye.app.ditushu.com/map/37030459f79ae1e854f6391c8029cdbdffa40/)，作者 Circuare，CC BY-SA。
-- `public/data/qin-east.geojson` 作为研究资料保留，当前阅读界面仅展示现代地图，不加载古代图层。 
+- `public/data/qin-east.geojson` 作为研究资料保留，当前阅读界面仅展示现代地图，不加载古代图层。
 
 地图地址可通过环境变量调整：
 
@@ -72,6 +75,26 @@ MAP_TILE_UPSTREAM_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 ```
 
 `MAP_TILE_UPSTREAM_URL` 只在服务端使用，不会把上游域名或密钥暴露给浏览器。替换为商业或国内地图服务前，应确认授权条款、坐标系和署名要求。
+
+## 访问统计与推广位
+
+统计和推广默认关闭，只有在你配置对应环境变量后才会启用。
+
+```shell
+# 百度统计站点代码
+BAIDU_TONGJI_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# 访问次数展示
+VISIT_COUNTER_PROVIDER=busuanzi
+
+# 章末推广位
+AD_CHAPTER_END_IMAGE_URL=/images/ad.jpg
+AD_CHAPTER_END_TARGET_URL=https://example.com
+AD_CHAPTER_END_ALT=推广内容
+AD_CHAPTER_END_SPONSOR=合作推广
+```
+
+其中 `AD_CHAPTER_END_IMAGE_URL` 支持站内相对路径或 `http(s)` 地址，`AD_CHAPTER_END_TARGET_URL` 必须是 `http(s)` 地址。统计脚本只会在用户授权后加载，因此未授权访问不会产生统计请求。
 
 ## 部署到 Cloudflare 或 Vercel
 

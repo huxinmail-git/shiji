@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Check, ChevronLeft, ChevronRight, Edit3, Map, Menu, Network, Search, X } from "lucide-react";
 import type { Chapter, Entity, Paragraph, ReaderData } from "@/lib/types";
 import PlaceMap from "@/components/place-map";
+import AdSlot from "@/components/ad-slot";
+import { trackEvent, trackPageView, VisitCounter } from "@/components/analytics";
+import type { AdPlacement, VisitCounterProvider } from "@/lib/site-config";
 
 function chineseNumber(value: number) {
   const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
@@ -72,7 +75,7 @@ function EntityPanel({ entity, data, canEdit, onClose, onSaved }: { entity: Enti
   </aside>;
 }
 
-export default function Reader({ initialData, canEdit }: { initialData: ReaderData; canEdit: boolean }) {
+export default function Reader({ initialData, canEdit, chapterEndAd, visitCounterProvider }: { initialData: ReaderData; canEdit: boolean; chapterEndAd?: AdPlacement; visitCounterProvider?: VisitCounterProvider }) {
   const [data, setData] = useState(initialData);
   const [chapterId, setChapterId] = useState(initialData.chapters[0].id);
   const [selected, setSelected] = useState<Entity | null>(null);
@@ -82,23 +85,34 @@ export default function Reader({ initialData, canEdit }: { initialData: ReaderDa
   const filtered = useMemo(() => data.chapters.filter((item) => item.title.includes(query)), [data.chapters, query]);
   const currentIndex = data.chapters.findIndex((item) => item.id === chapterId);
 
+  useEffect(() => {
+    trackPageView(`/chapter/${chapter.ordinal}`);
+  }, [chapter.ordinal]);
+
+  const selectedKey = selected ? `${selected.type}:${selected.id}` : "";
+  useEffect(() => {
+    if (!selected) return;
+    trackEvent("entity", "view", selectedKey);
+  }, [selectedKey]);
+
   function selectChapter(id: number) { setChapterId(id); setSelected(null); setNavOpen(false); }
   function updateEntity(entity: Entity) { setData((current) => ({ ...current, entities: current.entities.map((item) => item.id === entity.id ? entity : item) })); setSelected(entity); }
 
   return <main className="app-shell">
-    <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setNavOpen(true)} aria-label="打开目录"><Menu/></button><div className="brand"><span className="brand-mark">史</span><div><strong>太史书</strong><small>史记数字阅读</small></div></div><div className="reading-progress"><span>正在阅读</span><strong>{chapter.title}</strong></div><div className="legend"><span><i className="line person-line"/>人物</span><span><i className="line place-line"/>地名</span></div></header>
+    <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setNavOpen(true)} aria-label="打开目录"><Menu/></button><div className="brand"><span className="brand-mark">史</span><div><strong>太史书</strong><small>史记数字阅读</small></div></div><div className="reading-progress"><span>正在阅读</span><strong>{chapter.title}</strong></div><div className="topbar-meta"><VisitCounter provider={visitCounterProvider} /><div className="legend"><span><i className="line person-line"/>人物</span><span><i className="line place-line"/>地名</span></div></div></header>
     <div className="workspace">
       <nav className={`chapter-nav ${navOpen ? "open" : ""}`}>
         <div className="nav-heading"><div><small>卷目</small><h2>史记百三十篇</h2></div><button className="mobile-close icon-button" onClick={() => setNavOpen(false)}><X size={18}/></button></div>
         <div className="search"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="检索篇目"/></div>
         <div className="chapter-list">{filtered.map((item) => <button key={item.id} className={item.id === chapterId ? "active" : ""} onClick={() => selectChapter(item.id)}><span>{String(item.ordinal).padStart(2, "0")}</span><div><strong>{item.title}</strong><small>{item.category}</small></div></button>)}</div>
-        <div className="nav-foot"><BookOpen size={16}/><span>十二本纪全文 · 维基文库 CC BY-SA</span></div>
+        <div className="nav-foot"><BookOpen size={16}/><span>十二本纪全文 · 维基文库 CC BY-SA · <a href="/privacy">隐私说明</a></span></div>
       </nav>
       {navOpen && <button className="backdrop" onClick={() => setNavOpen(false)} aria-label="关闭目录"/>}
       <article className="reading-pane">
         <div className="paper">
           <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
           <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={data.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
+          <AdSlot placement={chapterEndAd} name="chapter-end" />
           <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(data.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 卷</span><button disabled={currentIndex === data.chapters.length - 1} onClick={() => selectChapter(data.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
         </div>
       </article>
