@@ -128,19 +128,16 @@ export function Analytics({ baiduTrackingId }: { baiduTrackingId?: string }) {
 }
 
 export function VisitCounter({ provider }: { provider?: "busuanzi" }) {
-  const { consent, blocked } = useConsentState();
-  const enabled = provider === "busuanzi" && consent && !blocked;
-
   useEffect(() => {
-    if (enabled) loadBusuanziScript();
-  }, [enabled]);
+    if (provider === "busuanzi") loadBusuanziScript();
+  }, [provider]);
 
   if (provider !== "busuanzi") return null;
 
   return (
     <div className="visit-counter" aria-label="访问次数">
-      <span>访问 <b id="busuanzi_site_pv">{enabled ? "加载中" : "未启用"}</b> 次</span>
-      <span>访客 <b id="busuanzi_site_uv">{enabled ? "加载中" : "未启用"}</b> 人</span>
+      <span>访问 <b id="busuanzi_site_pv">加载中</b> 次</span>
+      <span>访客 <b id="busuanzi_site_uv">加载中</b> 人</span>
     </div>
   );
 }
@@ -154,10 +151,10 @@ export function PrivacyControls() {
         <strong>{blocked ? "浏览器已阻止统计" : consent ? "统计已启用" : "统计未启用"}</strong>
         <span>
           {blocked
-            ? "当前浏览器的 Do Not Track 或 Global Privacy Control 会阻止统计脚本。"
+            ? "当前浏览器的 Do Not Track 或 Global Privacy Control 会阻止百度统计脚本。"
             : consent
-              ? "当前设备已授权统计，将用于页面访问和推广点击统计。"
-              : "仅在你明确同意后，百度统计脚本才会加载。"}
+              ? "当前设备已授权百度统计，将用于页面访问和广告点击统计。"
+              : "百度统计脚本只会在你明确同意后加载；顶部访客数为公开访问计数展示。"}
         </span>
       </div>
       <div className="privacy-actions">
@@ -171,4 +168,3 @@ export function PrivacyControls() {
     </div>
   );
 }
-

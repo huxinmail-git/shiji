@@ -26,8 +26,8 @@ export function getBaiduTrackingId() {
 }
 
 export function getVisitCounterProvider(): VisitCounterProvider | undefined {
-  const value = process.env.VISIT_COUNTER_PROVIDER?.trim().toLowerCase() || process.env.NEXT_PUBLIC_VISIT_COUNTER_PROVIDER?.trim().toLowerCase();
-  if (!value) return undefined;
+  const value = (process.env.VISIT_COUNTER_PROVIDER?.trim() || process.env.NEXT_PUBLIC_VISIT_COUNTER_PROVIDER?.trim() || "busuanzi").toLowerCase();
+  if (["", "off", "none", "false", "disabled"].includes(value)) return undefined;
   if (value === "busuanzi") return value;
   console.warn("VISIT_COUNTER_PROVIDER is invalid; visit counter is hidden.");
   return undefined;
@@ -49,4 +49,3 @@ export function getChapterEndAd(): AdPlacement | undefined {
     sponsor: process.env.AD_CHAPTER_END_SPONSOR?.trim() || "合作推广",
   };
 }
-
