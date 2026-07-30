@@ -10,11 +10,7 @@ import type { AdPlacement, VisitCounterProvider } from "@/lib/site-config";
 
 const READING_PROGRESS_KEY = "shiji.reading-progress.v1";
 
-type ReadingProgress = {
-  chapterId: number;
-  scrollTop: number;
-  updatedAt: string;
-};
+type ReadingProgress = { chapterId: number; scrollTop: number; updatedAt: string };
 
 function readSavedProgress(chapterIds: Set<number>): ReadingProgress | undefined {
   if (typeof window === "undefined") return undefined;
@@ -24,37 +20,23 @@ function readSavedProgress(chapterIds: Set<number>): ReadingProgress | undefined
     const parsed = JSON.parse(raw) as Partial<ReadingProgress>;
     const parsedChapterId = parsed.chapterId;
     if (typeof parsedChapterId !== "number" || !Number.isInteger(parsedChapterId) || !chapterIds.has(parsedChapterId)) return undefined;
-    return {
-      chapterId: parsedChapterId,
-      scrollTop: typeof parsed.scrollTop === "number" && parsed.scrollTop > 0 ? parsed.scrollTop : 0,
-      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString(),
-    };
-  } catch {
-    return undefined;
-  }
+    return { chapterId: parsedChapterId, scrollTop: typeof parsed.scrollTop === "number" && parsed.scrollTop > 0 ? parsed.scrollTop : 0, updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString() };
+  } catch { return undefined; }
 }
 
 function saveReadingProgress(chapterId: number, scrollTop: number) {
   if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify({
-      chapterId,
-      scrollTop: Math.max(0, Math.round(scrollTop)),
-      updatedAt: new Date().toISOString(),
-    }));
-  } catch {
-    // Ignore storage failures.
-  }
+  try { window.localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify({ chapterId, scrollTop: Math.max(0, Math.round(scrollTop)), updatedAt: new Date().toISOString() })); } catch {}
 }
 
 function chineseNumber(value: number) {
   const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
   if (value < 10) return digits[value];
   if (value === 10) return "十";
-  if (value < 20) return `十${digits[value - 10]}`;
+  if (value < 20) return "十" + digits[value - 10];
   const tens = Math.floor(value / 10);
   const ones = value % 10;
-  return `${digits[tens]}十${ones ? digits[ones] : ""}`;
+  return digits[tens] + "十" + (ones ? digits[ones] : "");
 }
 
 function MarkedParagraph({ paragraph, entities, onSelect }: { paragraph: Paragraph; entities: Entity[]; onSelect: (entity: Entity) => void }) {
@@ -66,9 +48,7 @@ function MarkedParagraph({ paragraph, entities, onSelect }: { paragraph: Paragra
     parts.push(paragraph.content.slice(cursor, mark.startOffset));
     const entity = entities.find((item) => item.id === mark.entityId);
     const label = paragraph.content.slice(mark.startOffset, mark.endOffset);
-    parts.push(entity ? (
-      <button key={mark.id} className={`entity-mark ${entity.type.toLowerCase()}`} onClick={() => onSelect(entity)} title={`查看${entity.type === "PERSON" ? "人物" : "地名"}：${entity.name}`}>{label}</button>
-    ) : label);
+    parts.push(entity ? <button key={mark.id} className={`entity-mark ${entity.type.toLowerCase()}`} onClick={() => onSelect(entity)} title={"查看" + (entity.type === "PERSON" ? "人物" : "地名") + "：" + entity.name}>{label}</button> : label);
     cursor = mark.endOffset;
   }
   parts.push(paragraph.content.slice(cursor));
@@ -77,19 +57,14 @@ function MarkedParagraph({ paragraph, entities, onSelect }: { paragraph: Paragra
 
 function EntityPanel({ entity, data, onClose }: { entity: Entity; data: ReaderData; onClose: () => void }) {
   const related = data.relations.filter((relation) => relation.sourceId === entity.id || relation.targetId === entity.id);
-
   return <aside className="detail-panel">
     <div className="panel-topline"><span>{entity.type === "PERSON" ? "人物志" : "地理志"}</span><button className="icon-button" onClick={onClose} aria-label="关闭"><X size={18}/></button></div>
     <div className={`entity-seal ${entity.type.toLowerCase()}`}>{entity.name.slice(0, 1)}</div>
     <h2>{entity.name}</h2>
     {entity.aliases.length > 0 && <div className="aliases">又称　{entity.aliases.join(" · ")}</div>}
     <p className="entity-summary">{entity.summary}</p><p className="entity-details">{entity.details}</p>
-    {entity.sourceUrl && <p className="entity-source">参考资料：<a href={entity.sourceUrl} target="_blank" rel="noreferrer">{entity.sourceName ?? "资料来源"}</a>{entity.sourceUpdatedAt ? ` · ${entity.sourceUpdatedAt.slice(0, 10)}` : ""}</p>}
-    {entity.type === "PERSON" && <section className="panel-section"><div className="section-title"><Network size={16}/>人物关联</div>{related.length ? related.map((relation) => {
-      const otherId = relation.sourceId === entity.id ? relation.targetId : relation.sourceId;
-      const other = data.entities.find((item) => item.id === otherId);
-      return <div className="relation" key={relation.id}><div><strong>{other?.name}</strong><span>{relation.relationType}</span></div><p>{relation.description}</p></div>;
-    }) : <p className="muted">暂无已考证关系</p>}</section>}
+    {entity.sourceUrl && <p className="entity-source">参考资料：<a href={entity.sourceUrl} target="_blank" rel="noreferrer">{entity.sourceName ?? "资料来源"}</a>{entity.sourceUpdatedAt ? " · " + entity.sourceUpdatedAt.slice(0, 10) : ""}</p>}
+    {entity.type === "PERSON" && <section className="panel-section"><div className="section-title"><Network size={16}/>人物关联</div>{related.length ? related.map((relation) => { const otherId = relation.sourceId === entity.id ? relation.targetId : relation.sourceId; const other = data.entities.find((item) => item.id === otherId); return <div className="relation" key={relation.id}><div><strong>{other?.name}</strong><span>{relation.relationType}</span></div><p>{relation.description}</p></div>; }) : <p className="muted">暂无已考证关系</p>}</section>}
     {entity.type === "PLACE" && <section className="panel-section"><div className="section-title"><Map size={16}/>现代位置</div><PlaceMap entity={entity}/><p className="map-note">地图显示该地点今天的位置、道路和周边城市；底图不可用时会显示本地示意图。</p></section>}
   </aside>;
 }
@@ -106,53 +81,12 @@ export default function Reader({ initialData, chapterEndAd, visitCounterProvider
   const filtered = useMemo(() => initialData.chapters.filter((item) => item.title.includes(query)), [initialData.chapters, query]);
   const currentIndex = initialData.chapters.findIndex((item) => item.id === chapterId);
 
-  useEffect(() => {
-    trackPageView(`/chapter/${chapter.ordinal}`);
-  }, [chapter.ordinal]);
-
-  useEffect(() => {
-    const pane = readingPaneRef.current;
-    if (!pane) return;
-    const saved = readSavedProgress(chapterIds);
-    const targetTop = restoreOnChapterChange.current && saved?.chapterId === chapterId ? saved.scrollTop : 0;
-    requestAnimationFrame(() => {
-      pane.scrollTop = targetTop;
-      saveReadingProgress(chapterId, targetTop);
-      restoreOnChapterChange.current = false;
-    });
-  }, [chapterId, chapterIds]);
-
-  useEffect(() => {
-    const pane = readingPaneRef.current;
-    if (!pane) return;
-    const activePane = pane;
-    let frame = 0;
-    function onScroll() {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        saveReadingProgress(chapterId, activePane.scrollTop);
-      });
-    }
-    activePane.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      activePane.removeEventListener("scroll", onScroll);
-    };
-  }, [chapterId]);
-
+  useEffect(() => { trackPageView(`/chapter/${chapter.ordinal}`); }, [chapter.ordinal]);
+  useEffect(() => { const pane = readingPaneRef.current; if (!pane) return; const saved = readSavedProgress(chapterIds); const targetTop = restoreOnChapterChange.current && saved?.chapterId === chapterId ? saved.scrollTop : 0; requestAnimationFrame(() => { pane.scrollTop = targetTop; saveReadingProgress(chapterId, targetTop); restoreOnChapterChange.current = false; }); }, [chapterId, chapterIds]);
+  useEffect(() => { const pane = readingPaneRef.current; if (!pane) return; const activePane = pane; let frame = 0; function onScroll() { if (frame) return; frame = window.requestAnimationFrame(() => { frame = 0; saveReadingProgress(chapterId, activePane.scrollTop); }); } activePane.addEventListener("scroll", onScroll, { passive: true }); return () => { if (frame) window.cancelAnimationFrame(frame); activePane.removeEventListener("scroll", onScroll); }; }, [chapterId]);
   const selectedKey = selected ? `${selected.type}:${selected.id}` : "";
-  useEffect(() => {
-    if (!selected) return;
-    trackEvent("entity", "view", selectedKey);
-  }, [selectedKey]);
-
-  function selectChapter(id: number, restore = false) {
-    restoreOnChapterChange.current = restore;
-    setChapterId(id);
-    setSelected(null);
-    setNavOpen(false);
-  }
+  useEffect(() => { if (selected) trackEvent("entity", "view", selectedKey); }, [selectedKey]);
+  function selectChapter(id: number, restore = false) { restoreOnChapterChange.current = restore; setChapterId(id); setSelected(null); setNavOpen(false); }
 
   return <main className="app-shell">
     <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setNavOpen(true)} aria-label="打开目录"><Menu/></button><div className="brand"><span className="brand-mark">史</span><div><strong>太史书</strong><small>史记数字阅读</small></div></div><div className="reading-progress"><span>正在阅读</span><strong>{chapter.title}</strong></div><div className="topbar-meta"><VisitCounter provider={visitCounterProvider} /><div className="legend"><span><i className="line person-line"/>人物</span><span><i className="line place-line"/>地名</span></div></div></header>
@@ -164,14 +98,12 @@ export default function Reader({ initialData, chapterEndAd, visitCounterProvider
         <div className="nav-foot"><BookOpen size={16}/><span>十二本纪全文 · 维基文库 CC BY-SA · <a href="/privacy">隐私说明</a></span></div>
       </nav>
       {navOpen && <button className="backdrop" onClick={() => setNavOpen(false)} aria-label="关闭目录"/>}
-      <article className="reading-pane" ref={readingPaneRef}>
-        <div className="paper">
-          <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
-          <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={initialData.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
-          <AdSlot placement={chapterEndAd} name="chapter-end" />
-          <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(initialData.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 篇</span><button disabled={currentIndex === initialData.chapters.length - 1} onClick={() => selectChapter(initialData.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
-        </div>
-      </article>
+      <article className="reading-pane" ref={readingPaneRef}><div className="paper">
+        <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
+        <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={initialData.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
+        <AdSlot placement={chapterEndAd} name="chapter-end" />
+        <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(initialData.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 篇</span><button disabled={currentIndex === initialData.chapters.length - 1} onClick={() => selectChapter(initialData.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
+      </div></article>
       {selected && <EntityPanel key={selected.id} entity={selected} data={initialData} onClose={() => setSelected(null)}/>}
     </div>
   </main>;
