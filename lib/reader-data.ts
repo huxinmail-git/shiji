@@ -1,10 +1,12 @@
-import readerData from "@/data/reader-data.json";
+import chapters from "@/data/chapters.json";
+import entitiesConfig from "@/data/entities.json";
+import relationsConfig from "@/data/relations.json";
 import type { ReaderData } from "./types";
 
-// Cloudflare Workers has no persistent local filesystem or Node SQLite runtime.
-// The published reader is intentionally read-only and uses this build snapshot.
-export const entityEditingEnabled = false;
-
 export function getReaderData(): ReaderData {
-  return readerData as ReaderData;
+  return {
+    chapters: chapters as ReaderData["chapters"],
+    entities: entitiesConfig.entities as ReaderData["entities"],
+    relations: relationsConfig.relations as ReaderData["relations"],
+  };
 }

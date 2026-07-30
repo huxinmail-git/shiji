@@ -1,0 +1,426 @@
+{
+  "source": "JSON relation configuration derived from Shiji text and local curation.",
+  "generatedAt": "2026-07-30T02:19:32.291Z",
+  "relations": [
+    {
+      "id": 1,
+      "sourceId": 1,
+      "targetId": 3,
+      "relationType": "叔侄",
+      "description": "项梁为项羽季父"
+    },
+    {
+      "id": 2,
+      "sourceId": 1,
+      "targetId": 4,
+      "relationType": "祖孙",
+      "description": "项燕为项羽祖父"
+    },
+    {
+      "id": 3,
+      "sourceId": 4,
+      "targetId": 5,
+      "relationType": "敌对",
+      "description": "王翦率秦军攻楚，项燕兵败"
+    },
+    {
+      "id": 4,
+      "sourceId": 9,
+      "targetId": 16,
+      "relationType": "父子",
+      "description": "《五帝本纪》载：黃帝者，少典之子。"
+    },
+    {
+      "id": 5,
+      "sourceId": 9,
+      "targetId": 17,
+      "relationType": "夫妻",
+      "description": "嫘祖为黃帝正妃。"
+    },
+    {
+      "id": 6,
+      "sourceId": 9,
+      "targetId": 18,
+      "relationType": "父子",
+      "description": "昌意为黃帝与嫘祖之子。"
+    },
+    {
+      "id": 7,
+      "sourceId": 18,
+      "targetId": 12,
+      "relationType": "父子",
+      "description": "昌意之子高陽即帝顓頊。"
+    },
+    {
+      "id": 8,
+      "sourceId": 13,
+      "targetId": 14,
+      "relationType": "父子",
+      "description": "帝堯放勳为帝嚳之子。"
+    },
+    {
+      "id": 9,
+      "sourceId": 14,
+      "targetId": 22,
+      "relationType": "父子",
+      "description": "丹朱为帝堯之子。"
+    },
+    {
+      "id": 10,
+      "sourceId": 26,
+      "targetId": 15,
+      "relationType": "父子",
+      "description": "帝舜重華之父为瞽叟。"
+    },
+    {
+      "id": 11,
+      "sourceId": 24,
+      "targetId": 25,
+      "relationType": "父子",
+      "description": "《夏本纪》载：禹之父曰鯀。"
+    },
+    {
+      "id": 12,
+      "sourceId": 25,
+      "targetId": 31,
+      "relationType": "父子",
+      "description": "夏后帝啟为禹之子。"
+    },
+    {
+      "id": 13,
+      "sourceId": 15,
+      "targetId": 27,
+      "relationType": "君臣",
+      "description": "皋陶辅佐帝舜，掌刑狱。"
+    },
+    {
+      "id": 14,
+      "sourceId": 15,
+      "targetId": 28,
+      "relationType": "君臣",
+      "description": "伯益辅佐帝舜与大禹。"
+    },
+    {
+      "id": 15,
+      "sourceId": 25,
+      "targetId": 28,
+      "relationType": "同僚",
+      "description": "伯益协助大禹治水。"
+    },
+    {
+      "id": 16,
+      "sourceId": 36,
+      "targetId": 37,
+      "relationType": "君臣",
+      "description": "伊尹辅佐成湯灭夏建商。"
+    },
+    {
+      "id": 17,
+      "sourceId": 43,
+      "targetId": 44,
+      "relationType": "宗亲",
+      "description": "箕子为殷宗室，曾谏帝辛。"
+    },
+    {
+      "id": 18,
+      "sourceId": 43,
+      "targetId": 45,
+      "relationType": "叔侄",
+      "description": "比干为帝辛叔父，因强谏被杀。"
+    },
+    {
+      "id": 19,
+      "sourceId": 43,
+      "targetId": 46,
+      "relationType": "兄弟",
+      "description": "微子为帝辛庶兄。"
+    },
+    {
+      "id": 20,
+      "sourceId": 48,
+      "targetId": 49,
+      "relationType": "父子",
+      "description": "季歷为古公亶父之子。"
+    },
+    {
+      "id": 21,
+      "sourceId": 49,
+      "targetId": 50,
+      "relationType": "父子",
+      "description": "周文王昌为季歷之子。"
+    },
+    {
+      "id": 22,
+      "sourceId": 50,
+      "targetId": 51,
+      "relationType": "父子",
+      "description": "周武王发为周文王之子。"
+    },
+    {
+      "id": 23,
+      "sourceId": 50,
+      "targetId": 52,
+      "relationType": "父子",
+      "description": "周公旦为周文王之子。"
+    },
+    {
+      "id": 24,
+      "sourceId": 51,
+      "targetId": 52,
+      "relationType": "兄弟",
+      "description": "周公旦为周武王之弟。"
+    },
+    {
+      "id": 25,
+      "sourceId": 51,
+      "targetId": 56,
+      "relationType": "父子",
+      "description": "周成王诵为周武王之子。"
+    },
+    {
+      "id": 26,
+      "sourceId": 56,
+      "targetId": 52,
+      "relationType": "叔侄",
+      "description": "周公旦为成王叔父，并辅政摄政。"
+    },
+    {
+      "id": 27,
+      "sourceId": 56,
+      "targetId": 57,
+      "relationType": "父子",
+      "description": "周康王钊为周成王之子。"
+    },
+    {
+      "id": 28,
+      "sourceId": 50,
+      "targetId": 53,
+      "relationType": "君臣",
+      "description": "太公望辅佐周文王、周武王。"
+    },
+    {
+      "id": 29,
+      "sourceId": 51,
+      "targetId": 53,
+      "relationType": "君臣",
+      "description": "太公望辅佐周武王伐商。"
+    },
+    {
+      "id": 30,
+      "sourceId": 73,
+      "targetId": 72,
+      "relationType": "君臣",
+      "description": "商鞅受秦孝公任用推行变法。"
+    },
+    {
+      "id": 31,
+      "sourceId": 75,
+      "targetId": 76,
+      "relationType": "君臣",
+      "description": "白起为秦昭襄王时期名将。"
+    },
+    {
+      "id": 32,
+      "sourceId": 75,
+      "targetId": 77,
+      "relationType": "君臣",
+      "description": "范雎任秦昭襄王相国。"
+    },
+    {
+      "id": 33,
+      "sourceId": 79,
+      "targetId": 80,
+      "relationType": "君臣",
+      "description": "李斯辅佐秦始皇统一六国。"
+    },
+    {
+      "id": 34,
+      "sourceId": 79,
+      "targetId": 81,
+      "relationType": "君臣",
+      "description": "蒙恬为秦始皇时期名将。"
+    },
+    {
+      "id": 35,
+      "sourceId": 79,
+      "targetId": 82,
+      "relationType": "君臣",
+      "description": "王賁为秦统一战争中的将领。"
+    },
+    {
+      "id": 36,
+      "sourceId": 79,
+      "targetId": 86,
+      "relationType": "父子",
+      "description": "扶蘇为秦始皇长子。"
+    },
+    {
+      "id": 37,
+      "sourceId": 79,
+      "targetId": 85,
+      "relationType": "父子",
+      "description": "胡亥为秦始皇之子，后即二世皇帝位。"
+    },
+    {
+      "id": 38,
+      "sourceId": 85,
+      "targetId": 84,
+      "relationType": "君臣",
+      "description": "趙高在胡亥即位及执政过程中居于要位。"
+    },
+    {
+      "id": 39,
+      "sourceId": 1,
+      "targetId": 91,
+      "relationType": "主臣",
+      "description": "范增为項羽谋士，被尊为亚父。"
+    },
+    {
+      "id": 40,
+      "sourceId": 1,
+      "targetId": 92,
+      "relationType": "伴侣",
+      "description": "虞姬常随項羽征战。"
+    },
+    {
+      "id": 41,
+      "sourceId": 1,
+      "targetId": 90,
+      "relationType": "敌对",
+      "description": "項羽与劉邦在楚汉战争中争夺天下。"
+    },
+    {
+      "id": 42,
+      "sourceId": 90,
+      "targetId": 103,
+      "relationType": "夫妻",
+      "description": "呂雉为漢高祖劉邦皇后。"
+    },
+    {
+      "id": 43,
+      "sourceId": 90,
+      "targetId": 111,
+      "relationType": "父子",
+      "description": "漢惠帝盈为劉邦之子。"
+    },
+    {
+      "id": 44,
+      "sourceId": 103,
+      "targetId": 111,
+      "relationType": "母子",
+      "description": "漢惠帝盈为呂雉之子。"
+    },
+    {
+      "id": 45,
+      "sourceId": 90,
+      "targetId": 112,
+      "relationType": "父子",
+      "description": "趙王如意为劉邦与戚夫人之子。"
+    },
+    {
+      "id": 46,
+      "sourceId": 113,
+      "targetId": 112,
+      "relationType": "母子",
+      "description": "趙王如意为戚夫人之子。"
+    },
+    {
+      "id": 47,
+      "sourceId": 90,
+      "targetId": 116,
+      "relationType": "父子",
+      "description": "漢文帝恒为漢高祖劉邦之子。"
+    },
+    {
+      "id": 48,
+      "sourceId": 117,
+      "targetId": 116,
+      "relationType": "母子",
+      "description": "漢文帝恒为薄太后之子。"
+    },
+    {
+      "id": 49,
+      "sourceId": 116,
+      "targetId": 118,
+      "relationType": "夫妻",
+      "description": "竇氏为漢文帝皇后。"
+    },
+    {
+      "id": 50,
+      "sourceId": 116,
+      "targetId": 121,
+      "relationType": "父子",
+      "description": "漢景帝啟为漢文帝之子。"
+    },
+    {
+      "id": 51,
+      "sourceId": 116,
+      "targetId": 119,
+      "relationType": "君臣",
+      "description": "賈誼为漢文帝时期政论家。"
+    },
+    {
+      "id": 52,
+      "sourceId": 121,
+      "targetId": 120,
+      "relationType": "君臣",
+      "description": "鼂錯受漢景帝重用，主张削藩。"
+    },
+    {
+      "id": 53,
+      "sourceId": 121,
+      "targetId": 123,
+      "relationType": "君臣",
+      "description": "周亞夫为漢景帝平定七国之乱。"
+    },
+    {
+      "id": 54,
+      "sourceId": 121,
+      "targetId": 124,
+      "relationType": "父子",
+      "description": "漢武帝徹为漢景帝之子。"
+    },
+    {
+      "id": 55,
+      "sourceId": 124,
+      "targetId": 125,
+      "relationType": "君臣",
+      "description": "衛青为漢武帝时期大将军。"
+    },
+    {
+      "id": 56,
+      "sourceId": 124,
+      "targetId": 126,
+      "relationType": "君臣",
+      "description": "霍去病为漢武帝时期名将。"
+    },
+    {
+      "id": 57,
+      "sourceId": 125,
+      "targetId": 126,
+      "relationType": "舅甥",
+      "description": "衛青为霍去病舅父。"
+    },
+    {
+      "id": 58,
+      "sourceId": 124,
+      "targetId": 127,
+      "relationType": "君臣",
+      "description": "董仲舒在漢武帝时期提出重要治国建议。"
+    },
+    {
+      "id": 59,
+      "sourceId": 124,
+      "targetId": 128,
+      "relationType": "君臣",
+      "description": "公孫弘在漢武帝时期任丞相。"
+    },
+    {
+      "id": 60,
+      "sourceId": 124,
+      "targetId": 129,
+      "relationType": "君臣",
+      "description": "司馬相如为漢武帝时期辞赋家与使臣。"
+    }
+  ]
+}

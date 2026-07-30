@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, ChevronLeft, ChevronRight, Edit3, Map, Menu, Network, Search, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Map, Menu, Network, Search, X } from "lucide-react";
 import type { Chapter, Entity, Paragraph, ReaderData } from "@/lib/types";
 import PlaceMap from "@/components/place-map";
 import AdSlot from "@/components/ad-slot";
@@ -36,36 +36,16 @@ function MarkedParagraph({ paragraph, entities, onSelect }: { paragraph: Paragra
   return <p className="classic-text">{parts}</p>;
 }
 
-function EntityPanel({ entity, data, canEdit, onClose, onSaved }: { entity: Entity; data: ReaderData; canEdit: boolean; onClose: () => void; onSaved: (entity: Entity) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [summary, setSummary] = useState(entity.summary);
-  const [details, setDetails] = useState(entity.details);
-  const [saving, setSaving] = useState(false);
+function EntityPanel({ entity, data, onClose }: { entity: Entity; data: ReaderData; onClose: () => void }) {
   const related = data.relations.filter((relation) => relation.sourceId === entity.id || relation.targetId === entity.id);
-
-  async function save() {
-    setSaving(true);
-    const response = await fetch(`/api/entities/${entity.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ summary, details }) });
-    if (response.ok) { onSaved(await response.json()); setEditing(false); }
-    setSaving(false);
-  }
 
   return <aside className="detail-panel">
     <div className="panel-topline"><span>{entity.type === "PERSON" ? "人物志" : "地理志"}</span><button className="icon-button" onClick={onClose} aria-label="关闭"><X size={18}/></button></div>
     <div className={`entity-seal ${entity.type.toLowerCase()}`}>{entity.name.slice(0, 1)}</div>
     <h2>{entity.name}</h2>
     {entity.aliases.length > 0 && <div className="aliases">又称　{entity.aliases.join(" · ")}</div>}
-    {editing ? <div className="edit-form">
-      <label>简要说明<textarea rows={3} value={summary} onChange={(event) => setSummary(event.target.value)}/></label>
-      <label>详细内容<textarea rows={8} value={details} onChange={(event) => setDetails(event.target.value)}/></label>
-      <div className="edit-actions"><button className="secondary" onClick={() => setEditing(false)}>取消</button><button className="primary" onClick={save} disabled={saving}><Check size={15}/>{saving ? "保存中" : "保存"}</button></div>
-    </div> : <>
-      <p className="entity-summary">{entity.summary}</p><p className="entity-details">{entity.details}</p>
-      {entity.sourceUrl && <p className="entity-source">参考资料：<a href={entity.sourceUrl} target="_blank" rel="noreferrer">{entity.sourceName ?? "维基百科"}</a>{entity.sourceUpdatedAt ? ` · ${entity.sourceUpdatedAt.slice(0, 10)}` : ""}</p>}
-      {canEdit
-        ? <button className="edit-button" onClick={() => setEditing(true)}><Edit3 size={15}/>编辑说明</button>
-        : <p className="readonly-note">线上版本为只读模式</p>}
-    </>}
+    <p className="entity-summary">{entity.summary}</p><p className="entity-details">{entity.details}</p>
+    {entity.sourceUrl && <p className="entity-source">参考资料：<a href={entity.sourceUrl} target="_blank" rel="noreferrer">{entity.sourceName ?? "资料来源"}</a>{entity.sourceUpdatedAt ? ` · ${entity.sourceUpdatedAt.slice(0, 10)}` : ""}</p>}
     {entity.type === "PERSON" && <section className="panel-section"><div className="section-title"><Network size={16}/>人物关联</div>{related.length ? related.map((relation) => {
       const otherId = relation.sourceId === entity.id ? relation.targetId : relation.sourceId;
       const other = data.entities.find((item) => item.id === otherId);
@@ -75,15 +55,14 @@ function EntityPanel({ entity, data, canEdit, onClose, onSaved }: { entity: Enti
   </aside>;
 }
 
-export default function Reader({ initialData, canEdit, chapterEndAd, visitCounterProvider }: { initialData: ReaderData; canEdit: boolean; chapterEndAd?: AdPlacement; visitCounterProvider?: VisitCounterProvider }) {
-  const [data, setData] = useState(initialData);
+export default function Reader({ initialData, chapterEndAd, visitCounterProvider }: { initialData: ReaderData; chapterEndAd?: AdPlacement; visitCounterProvider?: VisitCounterProvider }) {
   const [chapterId, setChapterId] = useState(initialData.chapters[0].id);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [query, setQuery] = useState("");
   const [navOpen, setNavOpen] = useState(false);
-  const chapter = data.chapters.find((item) => item.id === chapterId) as Chapter;
-  const filtered = useMemo(() => data.chapters.filter((item) => item.title.includes(query)), [data.chapters, query]);
-  const currentIndex = data.chapters.findIndex((item) => item.id === chapterId);
+  const chapter = initialData.chapters.find((item) => item.id === chapterId) as Chapter;
+  const filtered = useMemo(() => initialData.chapters.filter((item) => item.title.includes(query)), [initialData.chapters, query]);
+  const currentIndex = initialData.chapters.findIndex((item) => item.id === chapterId);
 
   useEffect(() => {
     trackPageView(`/chapter/${chapter.ordinal}`);
@@ -96,7 +75,6 @@ export default function Reader({ initialData, canEdit, chapterEndAd, visitCounte
   }, [selectedKey]);
 
   function selectChapter(id: number) { setChapterId(id); setSelected(null); setNavOpen(false); }
-  function updateEntity(entity: Entity) { setData((current) => ({ ...current, entities: current.entities.map((item) => item.id === entity.id ? entity : item) })); setSelected(entity); }
 
   return <main className="app-shell">
     <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setNavOpen(true)} aria-label="打开目录"><Menu/></button><div className="brand"><span className="brand-mark">史</span><div><strong>太史书</strong><small>史记数字阅读</small></div></div><div className="reading-progress"><span>正在阅读</span><strong>{chapter.title}</strong></div><div className="topbar-meta"><VisitCounter provider={visitCounterProvider} /><div className="legend"><span><i className="line person-line"/>人物</span><span><i className="line place-line"/>地名</span></div></div></header>
@@ -111,12 +89,12 @@ export default function Reader({ initialData, canEdit, chapterEndAd, visitCounte
       <article className="reading-pane">
         <div className="paper">
           <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
-          <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={data.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
+          <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={initialData.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
           <AdSlot placement={chapterEndAd} name="chapter-end" />
-          <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(data.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 卷</span><button disabled={currentIndex === data.chapters.length - 1} onClick={() => selectChapter(data.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
+          <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(initialData.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 卷</span><button disabled={currentIndex === initialData.chapters.length - 1} onClick={() => selectChapter(initialData.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
         </div>
       </article>
-      {selected && <EntityPanel key={selected.id} entity={selected} data={data} canEdit={canEdit} onClose={() => setSelected(null)} onSaved={updateEntity}/>}
+      {selected && <EntityPanel key={selected.id} entity={selected} data={initialData} onClose={() => setSelected(null)}/>}
     </div>
   </main>;
 }

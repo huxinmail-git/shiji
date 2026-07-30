@@ -7,11 +7,12 @@
   },
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run build:reader-data",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "enrich:wikipedia": "node --disable-warning=ExperimentalWarning scripts/enrich-entities-from-wikipedia.mjs",
-    "export:reader-data": "node --disable-warning=ExperimentalWarning scripts/export-reader-data.mjs"
+    "build:reader-data": "node scripts/build-reader-data.mjs",
+    "export:reader-data": "node scripts/build-reader-data.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
