@@ -1,22 +1,58 @@
-import { getReaderData } from "@/lib/reader-data";
-import { getSiteUrl } from "@/lib/site-config";
+import { getReaderData } from "@/lib/reader-data";
+import { getSiteUrl } from "@/lib/site-config";
+import type { Chapter } from "@/lib/types";
 
 export const SITE_NAME = "太史书";
 export const SITE_TITLE = "太史书 · 史记数字阅读";
 export const SITE_DESCRIPTION = "面向《史记》的静态数字阅读器，提供十二本纪原文阅读、人物地名标注、关系梳理和地理位置展示。";
 export const SEO_KEYWORDS = ["史记", "太史公", "司马迁", "史记原文", "史记阅读", "中国古代史", "文言文", "十二本纪"];
 
-export function absoluteUrl(path = "/") {
-  return new URL(path, getSiteUrl() + "/").toString();
-}
+export function absoluteUrl(path = "/") {
+  return new URL(path, getSiteUrl() + "/").toString();
+}
+
+export function getChapterPath(chapter: Pick<Chapter, "id">) {
+  return `/chapters/${chapter.id}`;
+}
+
+export function getChapterDescription(chapter: Chapter) {
+  const excerpt = chapter.paragraphs
+    .map((paragraph) => paragraph.content)
+    .join("")
+    .replace(/〔[^〕]+〕/g, "")
+    .replace(/\s+/g, "")
+    .slice(0, 90);
+  return `《史记·${chapter.title}》原文阅读。${chapter.subtitle}。${excerpt}${excerpt ? "……" : ""}`;
+}
 
 export function getChapterAnchors() {
   return getReaderData().chapters.map((chapter) => ({
-    title: chapter.title,
-    ordinal: chapter.ordinal,
-    url: absoluteUrl("/"),
-  }));
-}
+    title: chapter.title,
+    ordinal: chapter.ordinal,
+    url: absoluteUrl(getChapterPath(chapter)),
+  }));
+}
+
+export function getChapterJsonLd(chapter: Chapter) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Chapter",
+    name: chapter.title,
+    headline: `${chapter.title}原文`,
+    url: absoluteUrl(getChapterPath(chapter)),
+    position: chapter.ordinal,
+    inLanguage: "zh-CN",
+    description: getChapterDescription(chapter),
+    isPartOf: {
+      "@type": "Book",
+      name: "史记",
+      author: {
+        "@type": "Person",
+        name: "司马迁",
+      },
+    },
+  };
+}
 
 export function getHomeJsonLd() {
   const chapters = getChapterAnchors();

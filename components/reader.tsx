@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { BookOpen, ChevronLeft, ChevronRight, Map, Menu, Network, Search, X } from "lucide-react";
 import type { Chapter, Entity, Paragraph, ReaderData } from "@/lib/types";
 import PlaceMap from "@/components/place-map";
@@ -69,9 +70,9 @@ function EntityPanel({ entity, data, onClose }: { entity: Entity; data: ReaderDa
   </aside>;
 }
 
-export default function Reader({ initialData, chapterEndAd, visitCounterProvider }: { initialData: ReaderData; chapterEndAd?: AdPlacement; visitCounterProvider?: VisitCounterProvider }) {
+export default function Reader({ initialData, initialChapterId, chapterEndAd, visitCounterProvider }: { initialData: ReaderData; initialChapterId?: number; chapterEndAd?: AdPlacement; visitCounterProvider?: VisitCounterProvider }) {
   const chapterIds = useMemo(() => new Set(initialData.chapters.map((item) => item.id)), [initialData.chapters]);
-  const [chapterId, setChapterId] = useState(() => readSavedProgress(chapterIds)?.chapterId ?? initialData.chapters[0].id);
+  const [chapterId, setChapterId] = useState(() => initialChapterId && chapterIds.has(initialChapterId) ? initialChapterId : readSavedProgress(chapterIds)?.chapterId ?? initialData.chapters[0].id);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [query, setQuery] = useState("");
   const [navOpen, setNavOpen] = useState(false);
@@ -81,12 +82,13 @@ export default function Reader({ initialData, chapterEndAd, visitCounterProvider
   const filtered = useMemo(() => initialData.chapters.filter((item) => item.title.includes(query)), [initialData.chapters, query]);
   const currentIndex = initialData.chapters.findIndex((item) => item.id === chapterId);
 
-  useEffect(() => { trackPageView(`/chapter/${chapter.ordinal}`); }, [chapter.ordinal]);
+  useEffect(() => { if (initialChapterId && initialChapterId !== chapterId) { restoreOnChapterChange.current = false; setChapterId(initialChapterId); setSelected(null); } }, [chapterId, initialChapterId]);
+  useEffect(() => { trackPageView(`/chapters/${chapter.id}`); }, [chapter.id]);
   useEffect(() => { const pane = readingPaneRef.current; if (!pane) return; const saved = readSavedProgress(chapterIds); const targetTop = restoreOnChapterChange.current && saved?.chapterId === chapterId ? saved.scrollTop : 0; requestAnimationFrame(() => { pane.scrollTop = targetTop; saveReadingProgress(chapterId, targetTop); restoreOnChapterChange.current = false; }); }, [chapterId, chapterIds]);
   useEffect(() => { const pane = readingPaneRef.current; if (!pane) return; const activePane = pane; let frame = 0; function onScroll() { if (frame) return; frame = window.requestAnimationFrame(() => { frame = 0; saveReadingProgress(chapterId, activePane.scrollTop); }); } activePane.addEventListener("scroll", onScroll, { passive: true }); return () => { if (frame) window.cancelAnimationFrame(frame); activePane.removeEventListener("scroll", onScroll); }; }, [chapterId]);
   const selectedKey = selected ? `${selected.type}:${selected.id}` : "";
   useEffect(() => { if (selected) trackEvent("entity", "view", selectedKey); }, [selectedKey]);
-  function selectChapter(id: number, restore = false) { restoreOnChapterChange.current = restore; setChapterId(id); setSelected(null); setNavOpen(false); }
+  function prepareChapterNavigation() { restoreOnChapterChange.current = false; setSelected(null); setNavOpen(false); }
 
   return <main className="app-shell">
     <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setNavOpen(true)} aria-label="打开目录"><Menu/></button><div className="brand"><span className="brand-mark">史</span><div><strong>太史书</strong><small>史记数字阅读</small></div></div><div className="reading-progress"><span>正在阅读</span><strong>{chapter.title}</strong></div><div className="topbar-meta"><VisitCounter provider={visitCounterProvider} /><div className="legend"><span><i className="line person-line"/>人物</span><span><i className="line place-line"/>地名</span></div></div></header>
@@ -94,7 +96,7 @@ export default function Reader({ initialData, chapterEndAd, visitCounterProvider
       <nav className={`chapter-nav ${navOpen ? "open" : ""}`}>
         <div className="nav-heading"><div><small>卷目</small><h2>史记百三十篇</h2></div><button className="mobile-close icon-button" onClick={() => setNavOpen(false)} aria-label="关闭目录"><X size={18}/></button></div>
         <div className="search"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="检索篇目"/></div>
-        <div className="chapter-list">{filtered.map((item) => <button key={item.id} className={item.id === chapterId ? "active" : ""} onClick={() => selectChapter(item.id)}><span>{String(item.ordinal).padStart(2, "0")}</span><div><strong>{item.title}</strong><small>{item.category}</small></div></button>)}</div>
+        <div className="chapter-list">{filtered.map((item) => <Link key={item.id} href={`/chapters/${item.id}`} prefetch={false} className={`chapter-link ${item.id === chapterId ? "active" : ""}`} aria-current={item.id === chapterId ? "page" : undefined} onClick={prepareChapterNavigation}><span>{String(item.ordinal).padStart(2, "0")}</span><div><strong>{item.title}</strong><small>{item.category}</small></div></Link>)}</div>
         <div className="nav-foot"><BookOpen size={16}/><span>十二本纪全文 · 维基文库 CC BY-SA · <a href="/privacy">隐私说明</a></span></div>
       </nav>
       {navOpen && <button className="backdrop" onClick={() => setNavOpen(false)} aria-label="关闭目录"/>}
@@ -102,7 +104,11 @@ export default function Reader({ initialData, chapterEndAd, visitCounterProvider
         <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
         <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={initialData.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
         <AdSlot placement={chapterEndAd} name="chapter-end" />
-        <footer className="chapter-pagination"><button disabled={currentIndex === 0} onClick={() => selectChapter(initialData.chapters[currentIndex - 1].id)}><ChevronLeft size={18}/>上一篇</button><span>第 {chapter.ordinal} 篇</span><button disabled={currentIndex === initialData.chapters.length - 1} onClick={() => selectChapter(initialData.chapters[currentIndex + 1].id)}>下一篇<ChevronRight size={18}/></button></footer>
+        <footer className="chapter-pagination">
+          {currentIndex === 0 ? <span className="disabled"><ChevronLeft size={18}/>上一篇</span> : <Link href={`/chapters/${initialData.chapters[currentIndex - 1].id}`} prefetch={false} onClick={prepareChapterNavigation}><ChevronLeft size={18}/>上一篇</Link>}
+          <span>第 {chapter.ordinal} 篇</span>
+          {currentIndex === initialData.chapters.length - 1 ? <span className="disabled">下一篇<ChevronRight size={18}/></span> : <Link href={`/chapters/${initialData.chapters[currentIndex + 1].id}`} prefetch={false} onClick={prepareChapterNavigation}>下一篇<ChevronRight size={18}/></Link>}
+        </footer>
       </div></article>
       {selected && <EntityPanel key={selected.id} entity={selected} data={initialData} onClose={() => setSelected(null)}/>}
     </div>

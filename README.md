@@ -24,7 +24,7 @@ npm start
 ## 当前技术结构
 
 - Next.js 15、React 19、TypeScript
-- App Router，首页静态生成，阅读交互在客户端完成
+- App Router，十二本纪分别静态生成在 `/chapters/1` 至 `/chapters/12`，阅读交互在客户端完成
 - Leaflet 地图引擎与 OpenStreetMap 现代底图
 - 所有阅读内容、人物、地名、关系都来自 JSON 文件
 - 可选的百度统计、访问次数和章末推广位通过环境变量控制

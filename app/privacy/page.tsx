@@ -8,6 +8,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = {
   title: "隐私与统计说明",
   description: "太史书的访问统计、访客计数和推广位说明。",
+  alternates: { canonical: "/privacy" },
 };
 
 const copy = {
@@ -44,7 +45,7 @@ export default function PrivacyPage() {
         <p>{copy.scopeText}</p>
         <p>{copy.siteCode}{baiduTrackingId ? copy.configured : copy.missing}</p>
         <p>
-          <Link href="/">{copy.back}</Link>
+          <Link href="/chapters/1">{copy.back}</Link>
         </p>
       </section>
     </main>
