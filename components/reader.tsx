@@ -98,7 +98,7 @@ export default function Reader({ initialData, chapterEndAd, visitCounterProvider
         <div className="nav-foot"><BookOpen size={16}/><span>十二本纪全文 · 维基文库 CC BY-SA · <a href="/privacy">隐私说明</a></span></div>
       </nav>
       {navOpen && <button className="backdrop" onClick={() => setNavOpen(false)} aria-label="关闭目录"/>}
-      <article className="reading-pane" ref={readingPaneRef}><div className="paper">
+      <article className="reading-pane" ref={readingPaneRef}><div className="paper" id={`chapter-${chapter.ordinal}`}>
         <div className="chapter-kicker">卷{chineseNumber(chapter.ordinal)} · {chapter.category}第{chineseNumber(chapter.ordinal)}</div><h1>{chapter.title}</h1><p className="chapter-subtitle">{chapter.subtitle}</p><div className="ornament"><span/><b>太史公曰</b><span/></div>
         <div className="prose">{chapter.paragraphs.length ? chapter.paragraphs.map((paragraph) => <MarkedParagraph key={paragraph.id} paragraph={paragraph} entities={initialData.entities} onSelect={setSelected}/>) : <div className="empty-chapter"><BookOpen size={30}/><p>该篇正文尚待导入</p></div>}</div>
         <AdSlot placement={chapterEndAd} name="chapter-end" />
