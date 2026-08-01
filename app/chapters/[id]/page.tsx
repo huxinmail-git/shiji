@@ -6,7 +6,6 @@ import { getChapterEndAd, getVisitCounterProvider } from "@/lib/site-config";
 import { getChapterDescription, getChapterJsonLd, getChapterPath, getHomeJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-static";
-export const dynamicParams = false;
 
 type ChapterPageProps = {
   params: Promise<{ id: string }>;
